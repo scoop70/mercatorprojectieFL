@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Flevoland Mercator vs RD Split</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body { margin:0; padding:0; display:flex; height:100vh; }
+    #map1, #map2 { flex:1; }
+    #map1 { border-right: 2px solid #888; }
+  </style>
+</head>
+<body>
+  <div id="map1"></div>
+  <div id="map2"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Proj4JS + Proj4Leaflet -->
+  <script src="https://unpkg.com/proj4/dist/proj4.js"></script>
+  <script src="https://unpkg.com/proj4leaflet"></script>
+  <!-- Leaflet.Sync plugin -->
+  <script src="https://rawcdn.githack.com/jieter/Leaflet.Sync/master/L.Map.Sync.js"></script>
+
+  <script>
+    // RD-coördinatensysteem
+    const rdCrs = new L.Proj.CRS('EPSG:28992',
+      '+proj=sterea +lat_0=52.15616055555555 ' +
+      '+lon_0=5.38763888888889 +k=0.9999079 ' +
+      '+x_0=155000 +y_0=463000 +ellps=bessel ' +
+      '+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 +units=m +no_defs',
+      {
+        transformation: L.Transformation(-1, -1, 0, 0),
+        resolutions: [
+          3440.64, 1720.32, 860.16, 430.08, 215.04, 107.52,
+          53.76, 26.88, 13.44, 6.72, 3.36, 1.68, 0.84, 0.42
+        ],
+        origin: [0, 0]
+      }
+    );
+
+    // Mercator kaart
+    const map1 = L.map('map1', {
+      center: [52.5, 5.5],
+      zoom: 9,
+      crs: L.CRS.EPSG3857
+    });
+
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
+    }).addTo(map1);
+
+    // RD kaart
+    const map2 = L.map('map2', {
+      center: [52.5, 5.5],
+      zoom: 2,
+      crs: rdCrs
+    });
+
+    const rdTiles = L.tileLayer(
+      "https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:28992/{z}/{x}/{y}.png",
+      {
+        attribution: "Kaart: PDOK BRT Achtergrondkaart",
+        minZoom: 0,
+        maxZoom: 13,
+        continuousWorld: true
+      }
+    ).addTo(map2);
+
+    // Flevoland polygoon (vereenvoudigd, WGS84)
+    const flevolandCoords = [
+      [52.82, 5.35], [52.82, 5.82],
+      [52.45, 5.82], [52.35, 5.55],
+      [52.45, 5.20], [52.70, 5.20]
+    ];
+
+    L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map1);
+    L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map2);
+
+    // Sync beide kaarten
+    map1.sync(map2);
+    map2.sync(map1);
+  </script>
+</body>
+</html>
