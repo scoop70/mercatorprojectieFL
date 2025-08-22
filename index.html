@@ -66,11 +66,11 @@
     ).addTo(map2);
 
     // === Flevoland GeoJSON van PDOK ===
-    fetch("https://geodata.nationaalgeoregister.nl/provincies/geojson")
+    fetch("https://api.pdok.nl/kadaster/bestuurlijkegebieden/ogc/v1/collections/provinciegebied/items")
       .then(r => r.json())
       .then(data => {
         const flevoland = L.geoJSON(data, {
-          filter: f => f.properties.Provincienaam === "Flevoland",
+          filter: f => f.properties.naam === "Flevoland",
           style: { color: "red", fillOpacity: 0.2 }
         });
         flevoland.addTo(map1);
