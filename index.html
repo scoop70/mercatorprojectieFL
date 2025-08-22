@@ -2,42 +2,31 @@
 <html lang="nl">
 <head>
   <meta charset="utf-8">
-  <title>Flevoland in Mercator vs RD</title>
+  <title>Flevoland Mercator vs RD Split</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
   <style>
-    body { margin:0; padding:0; }
-    #map { width: 100%; height: 100vh; }
-    .switch-btn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 6px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-family: sans-serif;
-      font-size: 14px;
-    }
+    body { margin:0; padding:0; display:flex; height:100vh; }
+    #map1, #map2 { flex:1; }
+    #map1 { border-right: 2px solid #888; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <button id="switch" class="switch-btn">🔄 Wissel naar RD</button>
+  <div id="map1"></div>
+  <div id="map2"></div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <!-- Proj4JS + Proj4Leaflet -->
   <script src="https://unpkg.com/proj4/dist/proj4.js"></script>
   <script src="https://unpkg.com/proj4leaflet"></script>
+  <!-- Leaflet.Sync plugin -->
+  <script src="https://rawcdn.githack.com/jieter/Leaflet.Sync/master/L.Map.Sync.js"></script>
 
   <script>
-    // RD-coördinatensysteem (Amersfoort)
+    // RD-coördinatensysteem
     const rdCrs = new L.Proj.CRS('EPSG:28992',
       '+proj=sterea +lat_0=52.15616055555555 ' +
       '+lon_0=5.38763888888889 +k=0.9999079 ' +
@@ -53,72 +42,48 @@
       }
     );
 
-    // Mercator kaart (standaard Leaflet)
-    let map = L.map('map', {
+    // Mercator kaart (links)
+    const map1 = L.map('map1', {
       center: [52.5, 5.5],
       zoom: 9,
-      crs: L.CRS.EPSG3857 // Mercator
+      crs: L.CRS.EPSG3857
     });
 
-    // Mercator baselaag
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-    }).addTo(map);
+    }).addTo(map1);
 
-    // RD baselaag (PDOK BRT Achtergrondkaart via WMTS)
-    const rdTiles = new L.tileLayer(
-      "https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:28992/{z}/{x}/{y}.png",
+    // RD kaart (rechts)
+    const map2 = L.map('map2', {
+      center: [52.5, 5.5],
+      zoom: 3, // RD heeft minder zoomniveaus
+      crs: rdCrs
+    });
+
+    // Gebruik het officiële TMS-endpoint van PDOK
+    const rdTiles = L.tileLayer(
+      "https://service.pdok.nl/brt/achtergrondkaart/tms/1.0.0/standaard/EPSG:28992/{z}/{x}/{y}.png",
       {
         attribution: "Kaart: PDOK BRT Achtergrondkaart",
+        tms: true,
         minZoom: 0,
-        maxZoom: 13,
-        continuousWorld: true
+        maxZoom: 13
       }
-    );
+    ).addTo(map2);
 
-    // Flevoland polygoon (vereenvoudigd, WGS84 coords)
+    // Flevoland polygoon (vereenvoudigd, WGS84)
     const flevolandCoords = [
       [52.82, 5.35], [52.82, 5.82],
       [52.45, 5.82], [52.35, 5.55],
       [52.45, 5.20], [52.70, 5.20]
     ];
 
-    let flevoland = L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map);
+    L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map1);
+    L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map2);
 
-    // Wisselknop logica
-    let inRD = false;
-    document.getElementById('switch').addEventListener('click', function() {
-      map.remove();
-      document.getElementById('map').innerHTML = "";
-
-      if (!inRD) {
-        // RD kaart
-        map = L.map('map', {
-          crs: rdCrs,
-          center: [52.5, 5.5],
-          zoom: 2
-        });
-        rdTiles.addTo(map);
-
-        // Polygoon opnieuw toevoegen (Leaflet transformeert zelf van WGS84 naar RD)
-        flevoland = L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map);
-
-        this.textContent = "🔄 Wissel naar Mercator";
-        inRD = true;
-      } else {
-        // Terug naar Mercator
-        map = L.map('map', {
-          crs: L.CRS.EPSG3857,
-          center: [52.5, 5.5],
-          zoom: 9
-        });
-        osm.addTo(map);
-        flevoland = L.polygon(flevolandCoords, {color: 'red', fillOpacity: 0.2}).addTo(map);
-
-        this.textContent = "🔄 Wissel naar RD";
-        inRD = false;
-      }
-    });
+    // Synchroniseer beide kaarten
+    map1.sync(map2);
+    map2.sync(map1);
   </script>
 </body>
 </html>
